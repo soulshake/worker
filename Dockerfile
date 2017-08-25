@@ -1,12 +1,15 @@
-FROM alpine:3.4
+FROM golang:1.9
 MAINTAINER Travis CI GmbH <support+travis-worker-docker-image@travis-ci.org>
 
-ADD build/linux/amd64/travis-worker /usr/local/bin/travis-worker
-ADD .docker-entrypoint.sh /docker-entrypoint.sh
+RUN go get -u \
+    github.com/alecthomas/gometalinter \
+    github.com/FiloSottile/gvt \
+    mvdan.cc/sh/cmd/shfmt
+RUN gometalinter --install
+RUN apt-get update && apt-get install -y shellcheck
 
-RUN apk add --no-cache ca-certificates curl bash
-
-VOLUME ["/var/tmp"]
-ENTRYPOINT ["/docker-entrypoint.sh"]
+COPY . /go/src/github.com/travis-ci/worker
+WORKDIR /go/src/github.com/travis-ci/worker
+RUN go get ./...
+RUN make
 CMD ["travis-worker"]
-STOPSIGNAL SIGINT
